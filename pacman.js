@@ -293,6 +293,24 @@
   const energizerSpr = pix(8, 8, g => drawRows(g,
     ['  ####  ', ' ###### ', '########', '########', '########', '########', ' ###### ', '  ####  '], '#ffb8ae'));
 
+  // Intermission sprites (Blinky's torn / patched / missing sheet)
+  const SKIN = '#ffb8ae';
+  const tornSpr = [0, 1, 2, 3].map(d => pix(14, 14, g => {
+    ghostBody(g, '#ff0000', 0); drawEyes(g, d);
+    g.clearRect(8, 11, 6, 3);
+    g.fillStyle = SKIN; g.fillRect(9, 11, 2, 3);
+  }));
+  const patchedSpr = [0, 1].map(f => pix(14, 14, g => {
+    ghostBody(g, '#ff0000', f); drawEyes(g, LEFT);
+    g.fillStyle = SKIN; g.fillRect(9, 8, 3, 3);
+    g.fillStyle = '#ff0000'; g.fillRect(10, 9, 1, 1);
+  }));
+  const nakedSpr = [0, 1].map(f => pix(14, 8, g => {
+    drawRows(g, ['   #######  ', '  ######### ', ' ###########', ' ###########'], '#ff0000', 1, 2);
+    drawRows(g, f ? ['  #  #  #  # ', ' #  #  #  #  '] : ['   ##    ##  ', '   ##    ##  '], SKIN, 1, 6);
+  }));
+  const sheetSpr = pix(12, 6, g => drawRows(g, ['   ######   ', ' ########## ', '############', '## ## ## ## '], '#ff0000', 0, 2));
+
   // Fruits: drawn with vector shapes then alpha-thresholded into crisp pixels
   function fruitCanvas(draw) {
     const c = makeCanvas(14, 14), g = c.getContext('2d');
@@ -401,9 +419,11 @@
         if (ac.state === 'suspended') ac.resume();
       } catch (e) { ac = null; }
     }
-    function tone(type, f0, f1, dur, vol, when = 0) {
+    let music = [];
+    function tone(type, f0, f1, dur, vol, when = 0, track = false) {
       if (!ac) return;
       const t0 = ac.currentTime + when, o = ac.createOscillator(), g = ac.createGain();
+      if (track) music.push(o);
       o.type = type;
       o.frequency.setValueAtTime(f0, t0);
       if (f1 !== f0) o.frequency.linearRampToValueAtTime(f1, t0 + dur);
@@ -430,15 +450,33 @@
         const m2 = [['C5', 1], ['C6', 1], ['G5', 1], ['E5', 1], ['C6', .5], ['G5', 1.5], ['E5', 2]];
         const m4 = [['D#5', .5], ['E5', .5], ['F5', 1], ['F5', .5], ['F#5', .5], ['G5', 1],
           ['G5', .5], ['G#5', .5], ['A5', 1], ['B5', 2]];
-        let t = 0.05;
-        for (const [n, d] of [...m1, ...m2, ...m1, ...m4]) { tone('square', freq(n), freq(n), d * U * 0.92, 0.09, t); t += d * U; }
         const bassBar = (lo, hi) => [[lo, 0, 1.5], [hi, 3, 1], [lo, 4, 1.5], [hi, 7, 1]];
-        const bass = [bassBar('B2', 'B3'), bassBar('C3', 'C4'), bassBar('B2', 'B3'),
-          [['F#3', 0, 1.5], ['G#3', 2, 1.5], ['A#3', 4, 1.5], ['B3', 6, 2]]];
+        return this.song(U, [...m1, ...m2, ...m1, ...m4], [bassBar('B2', 'B3'), bassBar('C3', 'C4'), bassBar('B2', 'B3'),
+          [['F#3', 0, 1.5], ['G#3', 2, 1.5], ['A#3', 4, 1.5], ['B3', 6, 2]]]);
+      },
+      intermission() {
+        if (!ac) return 0;
+        const b1 = [['C5', 1], ['E5', 1], ['G5', 1], ['E5', 1], ['C6', 2], ['G5', 2]];
+        const b2 = [['A5', 1], ['G5', 1], ['F5', 1], ['E5', 1], ['D5', 2], ['G4', 2]];
+        const b3 = [['C5', 1], ['E5', 1], ['G5', 1], ['E5', 1], ['C6', 1], ['B5', 1], ['A5', 1], ['G5', 1]];
+        const b4 = [['F5', 1], ['D5', 1], ['B4', 1], ['D5', 1], ['C5', 4]];
+        const bb = (lo, hi) => [[lo, 0, 1], [hi, 2, 1], [lo, 4, 1], [hi, 6, 1]];
+        const bass = [bb('C3', 'G3'), bb('F3', 'G3'), bb('C3', 'G3'), bb('G2', 'C3')];
+        return this.song(0.14, [...b1, ...b2, ...b3, ...b4, ...b1, ...b2, ...b3, ...b4], [...bass, ...bass]);
+      },
+      // melody: [note, units]; bass: bars of 8 units holding [note, start, units]
+      song(U, melody, bass) {
+        this.stopMusic();
+        let t = 0.05;
+        for (const [n, d] of melody) { tone('square', freq(n), freq(n), d * U * 0.92, 0.09, t, true); t += d * U; }
         bass.forEach((bar, i) => {
-          for (const [n, s, d] of bar) tone('triangle', freq(n), freq(n), d * U * 0.95, 0.5, 0.05 + (i * 8 + s) * U);
+          for (const [n, s, d] of bar) tone('triangle', freq(n), freq(n), d * U * 0.95, 0.5, 0.05 + (i * 8 + s) * U, true);
         });
         return t;
+      },
+      stopMusic() {
+        for (const o of music) { try { o.stop(); } catch (e) { /* already stopped */ } }
+        music = [];
       },
       waka() {
         wk = !wk;
@@ -535,6 +573,12 @@
         dotMap[r * COLS + c] = v;
         if (v) dotsLeft++;
       }
+    }
+    if (level === 256) {   // the infamous split-screen: right half is garbage and can never be cleared
+      for (let r = 0; r < ROWS; r++) for (let c = 14; c < COLS; c++) {
+        if (dotMap[r * COLS + c]) { dotMap[r * COLS + c] = 0; dotsLeft--; }
+      }
+      dotsLeft++;
     }
     ghostDots.fill(0);
     useGlobal = false; globalDots = 0;
@@ -817,6 +861,28 @@
     }
   }
 
+  // ---------------- Levels & intermissions ----------------
+  // Act I "The Chase" after level 2, Act II "The Nail" after 5, Act III "Patched" after 9, 13 and 17
+  const CUTSCENE_AFTER = { 2: 1, 5: 2, 9: 3, 13: 3, 17: 3 };
+  const SNAG_T = Math.round((276 - 122) / 1.3);
+  let cutAct = 0;
+
+  function nextLevel() {
+    level++;
+    initLevel(); resetActors();
+    state = 'ready'; stateTimer = 0;
+  }
+  function startCutscene(act) {
+    cutAct = act;
+    state = 'cutscene'; stateTimer = 0;
+    Sound.intermission();
+  }
+  function endCutscene() {
+    Sound.stopMusic();
+    nextLevel();
+  }
+  const cutsceneEnd = () => cutAct === 1 ? 590 : cutAct === 2 ? SNAG_T + 330 : 560;
+
   // ---------------- Main update ----------------
   function update() {
     frame++;
@@ -849,10 +915,13 @@
         break;
       case 'levelDone':
         if (++stateTimer >= 60 + 8 * 12 + 20) {
-          level++;
-          initLevel(); resetActors();
-          state = 'ready'; stateTimer = 0;
+          const act = CUTSCENE_AFTER[level];
+          if (act) startCutscene(act);
+          else nextLevel();
         }
+        break;
+      case 'cutscene':
+        if (++stateTimer >= cutsceneEnd()) endCutscene();
         break;
       case 'gameOver':
         if (++stateTimer >= 210) { state = 'title'; titleT = 0; resetAttract(); }
@@ -938,6 +1007,7 @@
     const flashing = state === 'levelDone' && stateTimer >= 60 && (((stateTimer - 60) / 12) | 0) % 2 === 1;
     ctx.drawImage(flashing ? mazeWhite : mazeBlue, 0, MY, W, 248);
     if (state !== 'levelDone') drawDots();
+    if (level === 256) drawKillScreen();
 
     const introHidden = state === 'intro' && stateTimer < introFrames / 2;
     const showGhosts = !introHidden && state !== 'gameOver' &&
@@ -999,6 +1069,71 @@
     }
   }
 
+  function renderCutscene() {
+    drawHeader(false);
+    const t = stateTimer, y = 148, f = (frame >> 3) & 1;
+    const mouth = [0, 1, 2, 1][(t >> 2) & 3];
+    const pacFrame = dir => mouth === 0 ? pacClosed : pacSpr[dir][mouth];
+    const chase = (ghost) => {       // Pac-Man runs left across the screen with a ghost behind him
+      const px = 240 - 1.25 * t;
+      if (px > -10) sprite(pacFrame(LEFT), px, y);
+      sprite(ghost, 272 - 1.3 * t, y);
+    };
+
+    if (cutAct === 1) {
+      if (t < 260) chase(ghostSpr[0][f][LEFT]);
+      else {
+        const u = t - 260, gx = -10 + u * 0.9, bx = -54 + u * 0.9;
+        sprite(frightSpr[0][f], gx, y);
+        const p = pacFrame(RIGHT);
+        ctx.drawImage(p, Math.round(bx) - 14, y - 22, 30, 30);
+      }
+    } else if (cutAct === 2) {
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(127, y + 2, 3, 1);
+      ctx.fillRect(128, y + 2, 1, 5);
+      const px = 240 - 1.25 * t;
+      if (px > -10) sprite(pacFrame(LEFT), px, y);
+      if (t < SNAG_T) sprite(ghostSpr[0][f][LEFT], 276 - 1.3 * t, y);
+      else if (t < SNAG_T + 90) {
+        const bx = Math.round(122 - 10 * (t - SNAG_T) / 90);
+        sprite(ghostSpr[0][f][LEFT], bx, y);
+        poly(ctx, '#ff0000', [[129, y + 4], [bx + 6, y + 2], [bx + 6, y + 7]]);
+      } else {
+        poly(ctx, '#ff0000', [[129, y + 3], [124, y + 5], [129, y + 7]]);
+        const dir = t < SNAG_T + 150 ? LEFT : t < SNAG_T + 210 ? RIGHT : DOWN;
+        sprite(tornSpr[dir], 112, y);
+      }
+    } else {
+      if (t < 260) chase(patchedSpr[f]);
+      else {
+        const nx = Math.round(-20 + (t - 260));
+        ctx.drawImage(sheetSpr, nx - 22, y - 2);
+        ctx.drawImage(nakedSpr[f], nx - 7, y - 3);
+      }
+    }
+    drawFooter(lives - 1);
+  }
+
+  let killScreen = null;
+  function drawKillScreen() {
+    if (!killScreen) {
+      killScreen = pix(112, 248, g => {
+        let seed = 256;
+        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        const cols = ['#ffffff', '#ffff00', '#ff0000', '#00ffff', '#ffb8ff', '#2121ff', '#ffb852', '#ffb8ae'];
+        for (let r = 0; r < 31; r++) for (let c = 0; c < 14; c++) {
+          if (rnd() < 0.35) continue;
+          g.fillStyle = cols[(rnd() * cols.length) | 0];
+          for (let p = 0; p < 64; p++) if (rnd() < 0.42) g.fillRect(c * 8 + (p & 7), r * 8 + (p >> 3), 1, 1);
+        }
+      });
+    }
+    ctx.fillStyle = '#000';
+    ctx.fillRect(112, MY, 112, 248);
+    ctx.drawImage(killScreen, 112, MY);
+  }
+
   let needsRender = true;
   function render() {
     ctx.setTransform(S, 0, 0, S, 0, 0);
@@ -1008,6 +1143,7 @@
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
     if (state === 'title') renderTitle();
+    else if (state === 'cutscene') renderCutscene();
     else renderGame();
   }
 
@@ -1048,6 +1184,7 @@
     } else if (e.code === 'Enter' || e.code === 'Space') {
       e.preventDefault();
       if (state === 'title') startGame();
+      else if (state === 'cutscene') endCutscene();
     } else if (e.code === 'KeyP' || e.code === 'Escape') {
       if (inGame()) { paused = !paused; needsRender = true; }
     } else if (e.code === 'KeyM') {
@@ -1062,6 +1199,7 @@
     const t = e.changedTouches[0];
     touchStart = { x: t.clientX, y: t.clientY };
     if (state === 'title') startGame();
+    else if (state === 'cutscene') endCutscene();
     e.preventDefault();
   }, { passive: false });
   window.addEventListener('touchmove', e => {
