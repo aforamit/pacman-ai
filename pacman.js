@@ -549,7 +549,7 @@
   //  Game state
   // =====================================================================
   let state = 'title', stateTimer = 0, frame = 0, titleT = 0, introFrames = 260;
-  let score = 0, lives = 3, level = 1, extraGiven = false, paused = false;
+  let score = 0, lives = 3, level = 1, extraGiven = false, paused = false, cheatMode = false;
   let high = 0;
   try { high = +localStorage.getItem('pacman-high') || 0; } catch (e) { /* storage unavailable */ }
   function saveHigh() { try { localStorage.setItem('pacman-high', String(high)); } catch (e) { /* ignore */ } }
@@ -602,6 +602,7 @@
 
   function startGame() {
     score = 0; lives = 3; level = 1; extraGiven = false; paused = false;
+    cheatMode = false;
     initLevel();
     resetActors();
     const dur = Sound.intro();
@@ -807,7 +808,7 @@
           ghostPopup = { x: g.x, y: g.y, pts };
           state = 'ghostEaten'; stateTimer = 0;
           Sound.eatGhost();
-        } else {
+        } else if (!cheatMode) {
           state = 'dying'; stateTimer = 0;
         }
         return;
@@ -871,6 +872,15 @@
     level++;
     initLevel(); resetActors();
     state = 'ready'; stateTimer = 0;
+  }
+  function jumpLevel(delta) {
+    const next = Math.max(1, Math.min(256, level + delta));
+    if (next === level) return;
+    level = next;
+    Sound.stopMusic();
+    initLevel(); resetActors();
+    state = 'ready'; stateTimer = 0; paused = false;
+    needsRender = true;
   }
   function startCutscene(act) {
     cutAct = act;
@@ -1003,6 +1013,7 @@
 
   function renderGame() {
     drawHeader(state === 'play' || state === 'ghostEaten');
+    if (cheatMode) text('CHEAT MODE', 9, 2, '#00ff00');
 
     const flashing = state === 'levelDone' && stateTimer >= 60 && (((stateTimer - 60) / 12) | 0) % 2 === 1;
     ctx.drawImage(flashing ? mazeWhite : mazeBlue, 0, MY, W, 248);
@@ -1065,8 +1076,29 @@
       }
       if (att.pop) drawDigits(String(att.pop.pts), att.pop.x, y, '#00ffff');
       if (((frame >> 5) & 1) === 0) text('PRESS ENTER TO START', 4, 31, '#ffb852');
-      text('ARROWS/WASD  P:PAUSE  M:MUTE', 0, 34, '#ffb8ae');
+      text('ARROWS/WASD P:PAUSE M:MUTE', 0, 33, '#ffb8ae');
+      text('R:RULES  C:CHEAT  [ ]:LEVEL', 0, 34, '#ffb8ae');
     }
+  }
+
+  function renderRules() {
+    drawHeader(false);
+    text('GAME RULES', 9, 5, '#ffff00');
+    text('EAT DOTS TO CLEAR THE', 3, 8, '#ffffff');
+    text('MAZE AND ADVANCE.', 5, 9, '#ffffff');
+    text('DOTS: 10 PTS. POWER: 50.', 1, 11, '#ffffff');
+    text('POWER PELLETS FRIGHTEN.', 2, 12, '#ffffff');
+    text('EAT BLUE GHOSTS:', 6, 14, '#00ffff');
+    text('200 / 400 / 800 / 1600', 2, 15, '#ffffff');
+    text('AVOID GHOSTS OR LOSE LIFE.', 1, 17, '#ffffff');
+    text('START WITH 3 LIVES.', 5, 18, '#ffffff');
+    text('FRUIT BONUS. EXTRA LIFE', 3, 20, '#ffb8ff');
+    text('AT 10,000 POINTS.', 5, 21, '#ffb8ff');
+    text('C: TOGGLE INVINCIBILITY.', 2, 23, '#00ff00');
+    text('GHOSTS CANNOT HURT YOU.', 2, 24, '#ffffff');
+    text('[ / ]: PREV/NEXT LEVEL.', 2, 26, '#ffb852');
+    text('KEEP SCORE/LIVES; NEW BOARD.', 0, 27, '#ffffff');
+    text('R: BACK  ENTER: START', 3, 30, '#ffb852');
   }
 
   function renderCutscene() {
@@ -1143,6 +1175,7 @@
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
     if (state === 'title') renderTitle();
+    else if (state === 'rules') renderRules();
     else if (state === 'cutscene') renderCutscene();
     else renderGame();
   }
@@ -1174,7 +1207,7 @@
     ArrowUp: UP, KeyW: UP, ArrowLeft: LEFT, KeyA: LEFT,
     ArrowDown: DOWN, KeyS: DOWN, ArrowRight: RIGHT, KeyD: RIGHT,
   };
-  const inGame = () => state !== 'title' && state !== 'gameOver';
+  const inGame = () => state !== 'title' && state !== 'rules' && state !== 'gameOver';
 
   window.addEventListener('keydown', e => {
     Sound.init();
@@ -1184,11 +1217,23 @@
     } else if (e.code === 'Enter' || e.code === 'Space') {
       e.preventDefault();
       if (state === 'title') startGame();
+      else if (state === 'rules') startGame();
       else if (state === 'cutscene') endCutscene();
+    } else if (e.code === 'KeyR') {
+      if (state === 'title') { state = 'rules'; needsRender = true; }
+      else if (state === 'rules') { state = 'title'; titleT = 400; needsRender = true; }
     } else if (e.code === 'KeyP' || e.code === 'Escape') {
-      if (inGame()) { paused = !paused; needsRender = true; }
+      if (state === 'rules' && e.code === 'Escape') {
+        state = 'title'; titleT = 400; needsRender = true;
+      } else if (inGame()) { paused = !paused; needsRender = true; }
     } else if (e.code === 'KeyM') {
       Sound.toggleMute();
+    } else if (e.code === 'KeyC' && inGame()) {
+      cheatMode = !cheatMode;
+      needsRender = true;
+    } else if ((e.code === 'BracketLeft' || e.code === 'BracketRight') && inGame()) {
+      e.preventDefault();
+      jumpLevel(e.code === 'BracketRight' ? 1 : -1);
     }
   });
 

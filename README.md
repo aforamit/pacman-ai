@@ -16,8 +16,21 @@ The arcade-style lettering uses the **Press Start 2P** font from Google Fonts. O
 | Move | Arrow keys or WASD; swipe on touch screens |
 | Pause | P or Esc |
 | Mute | M |
+| Show game rules | R on the title screen |
+| Toggle cheat mode | C during a game |
+| Jump one level back / ahead | [ / ] during a game |
 
 The game pauses itself when you switch to another tab.
+
+## Game rules
+
+Eat every dot to clear the maze and advance to the next level. Dots are worth 10 points and power pellets are worth 50; power pellets temporarily frighten the ghosts so they can be eaten for 200, 400, 800 and 1,600 points in sequence. Avoid ghosts while they are not frightened or you lose a life. You start with three lives, earn an extra life at 10,000 points, and can collect bonus fruit for extra points. Press **R** on the title screen to view the in-game rules.
+
+## Cheat mode and level jumps
+
+Press **C** during a run to toggle cheat mode. While it is on, collisions with non-frightened ghosts cannot hurt Pac-Man, so you cannot lose a life to them. Frightened ghosts can still be eaten and award points as usual. The game screen displays **CHEAT MODE** while the option is active. Cheat mode resets to off when starting a new game.
+
+Press **]** to jump forward one level or **[** to jump back one level (levels 1–256). Jumping immediately starts the selected level with a fresh maze and resets its level-specific state, but keeps your current score and remaining lives. Level 256 is the arcade-style kill screen.
 
 ## Features
 
