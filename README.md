@@ -30,7 +30,7 @@ Eat every dot to clear the maze and advance to the next level. Dots are worth 10
 
 Press **C** during a run to toggle cheat mode. While it is on, collisions with non-frightened ghosts cannot hurt Pac-Man, so you cannot lose a life to them. Frightened ghosts can still be eaten and award points as usual. The game screen displays **CHEAT MODE** while the option is active. Cheat mode resets to off when starting a new game.
 
-Press **]** to jump forward one level or **[** to jump back one level (levels 1–256). Jumping immediately starts the selected level with a fresh maze and resets its level-specific state, but keeps your current score and remaining lives. Level 256 is the arcade-style kill screen.
+During a game, press **]** to jump forward one level or **[** to jump back one level (levels 1–256); repeat the key to skip multiple levels. The current level number appears above the maze. Jumping immediately starts the selected level with a fresh maze and resets its level-specific state, but keeps your current score and remaining lives. The fruit icons along the bottom mark the level progression; they are not extra lives or collected fruit. **1UP** is the player-one score label, not the level number. Level 256 is the arcade-style kill screen.
 
 ## Features
 

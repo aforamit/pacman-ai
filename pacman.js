@@ -1013,7 +1013,8 @@
 
   function renderGame() {
     drawHeader(state === 'play' || state === 'ghostEaten');
-    if (cheatMode) text('CHEAT MODE', 9, 2, '#00ff00');
+    text('LEVEL ' + level, 0, 2, '#ffff00');
+    if (cheatMode) text('CHEAT MODE', 14, 2, '#00ff00');
 
     const flashing = state === 'levelDone' && stateTimer >= 60 && (((stateTimer - 60) / 12) | 0) % 2 === 1;
     ctx.drawImage(flashing ? mazeWhite : mazeBlue, 0, MY, W, 248);
@@ -1096,9 +1097,12 @@
     text('AT 10,000 POINTS.', 5, 21, '#ffb8ff');
     text('C: TOGGLE INVINCIBILITY.', 2, 23, '#00ff00');
     text('GHOSTS CANNOT HURT YOU.', 2, 24, '#ffffff');
-    text('[ / ]: PREV/NEXT LEVEL.', 2, 26, '#ffb852');
-    text('KEEP SCORE/LIVES; NEW BOARD.', 0, 27, '#ffffff');
-    text('R: BACK  ENTER: START', 3, 30, '#ffb852');
+    text('[ / ]: PREV/NEXT (IN GAME).', 0, 26, '#ffb852');
+    text('ONE LEVEL PER PRESS; REPEAT.', 0, 27, '#ffffff');
+    text('LEVEL NUMBER SHOWS ABOVE.', 1, 28, '#ffffff');
+    text('FRUIT ICONS MARK LEVELS.', 2, 29, '#ffffff');
+    text('SCORE/LIVES STAY THE SAME.', 1, 30, '#ffffff');
+    text('R: BACK  ENTER: START', 3, 32, '#ffb852');
   }
 
   function renderCutscene() {
